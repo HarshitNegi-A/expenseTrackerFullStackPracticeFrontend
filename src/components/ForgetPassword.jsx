@@ -1,7 +1,6 @@
 import { useState } from "react";
-import axios from "axios";
-import BASE_URL from "../utils/api"; // Make sure this exports your backend URL
-
+import axios from "axios";// Make sure this exports your backend URL
+import BASE_URL from "../utils/api";
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import BASE_URL from "../utils/api"; // ✅ use central base url
+import BASE_URL from "../../utils/api"; // ✅ use central base url
 
 export const DownloadExpense = () => {
   const [fileUrl, setFileUrl] = useState(null);

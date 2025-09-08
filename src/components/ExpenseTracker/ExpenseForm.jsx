@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import ExpenseList from "./ExpenseList";
 import axios from "axios";
-import BASE_URL from "../../utils/api"; // ✅ central base url
+import BASE_URL from "../../utils/api";// ✅ central base url
 
 const ExpenseForm = ({ expenseList, setExpenseList }) => {
   const [category, setCategory] = useState([
