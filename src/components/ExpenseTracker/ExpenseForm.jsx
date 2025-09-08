@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import ExpenseList from "./ExpenseList";
 import axios from "axios";
+import BASE_URL from "../../utils/api"; // ✅ central base url
 
-const ExpenseForm = ({expenseList,setExpenseList}) => {
+const ExpenseForm = ({ expenseList, setExpenseList }) => {
   const [category, setCategory] = useState([
     "None",
     "Food",
@@ -11,31 +12,37 @@ const ExpenseForm = ({expenseList,setExpenseList}) => {
   ]);
   const token = localStorage.getItem("token");
   const [newCat, setNewCat] = useState("");
-  // const [expenseList, setExpenseList] = useState([]);
+
   const [formData, setFormData] = useState({
     amount: "",
     description: "",
     category: "None",
   });
-  const fetchExpense=async()=>{
-      try{
-        const res=await axios.get("http://localhost:3000/expense",{
-          headers:{
-            Authorization: `Bearer ${token}`
-          }
-        })
-        setExpenseList(res.data.expenses)
-      }
-      catch(err){
-        console.log(err)
-      }
+
+  // ✅ Fetch expenses
+  const fetchExpense = async () => {
+    try {
+      const res = await axios.get(`${BASE_URL}/expense`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setExpenseList(res.data.expenses);
+    } catch (err) {
+      console.error("Fetch expense error:", err.response?.data || err.message);
     }
-  useEffect(()=>{
-    fetchExpense()
-  },[])
+  };
+
+  useEffect(() => {
+    fetchExpense();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ✅ Add category
   const handleAddCategory = () => {
-    if(newCat===''){
-      alert("Add a valid category")
+    if (newCat === "") {
+      alert("Add a valid category");
+      return;
     }
     if (!category.includes(newCat)) {
       setCategory([...category, newCat]);
@@ -44,34 +51,40 @@ const ExpenseForm = ({expenseList,setExpenseList}) => {
       alert("Category already included");
     }
   };
-  const handleFormSubmit = async(e) => {
-    e.preventDefault();
-    try{
-        if(!formData.amount || !formData.description || !formData.category || formData.category === "None"){
-        alert("Fill all the fields")
-        return;
-    }
 
-    await axios.post('http://localhost:3000/expense/add-expense',formData,{
-      headers:{
-        Authorization: `Bearer ${token}`
+  // ✅ Add expense
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (
+        !formData.amount ||
+        !formData.description ||
+        !formData.category ||
+        formData.category === "None"
+      ) {
+        alert("Fill all the fields");
+        return;
       }
-    })
-    await fetchExpense();
-    // setExpenseList(res.data.expense);
-    // alert(res.data.message)
-    setFormData({
-      amount: "",
-      description: "",
-      category: "",
-    });
+
+      await axios.post(`${BASE_URL}/expense/add-expense`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      await fetchExpense();
+
+      setFormData({
+        amount: "",
+        description: "",
+        category: "",
+      });
+    } catch (err) {
+      console.error("Add expense error:", err.response?.data || err.message);
     }
-    catch(err){
-        console.log(err)
-    }
-    
   };
-  console.log(expenseList);
+
+  // ✅ Handle input change
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -79,6 +92,7 @@ const ExpenseForm = ({expenseList,setExpenseList}) => {
       [name]: value,
     }));
   };
+
   return (
     <>
       <form onSubmit={handleFormSubmit}>
@@ -91,6 +105,7 @@ const ExpenseForm = ({expenseList,setExpenseList}) => {
           value={formData.amount}
           type="number"
         />
+
         <label htmlFor="description">Description:</label>
         <input
           required
@@ -100,6 +115,7 @@ const ExpenseForm = ({expenseList,setExpenseList}) => {
           id="description"
           type="text"
         />
+
         <label htmlFor="category">Category:</label>
         <select
           required
@@ -108,10 +124,13 @@ const ExpenseForm = ({expenseList,setExpenseList}) => {
           value={formData.category}
           id="category"
         >
-          {category.map((cat,index) => (
-            <option key={index} value={cat}>{cat}</option>
+          {category.map((cat, index) => (
+            <option key={index} value={cat}>
+              {cat}
+            </option>
           ))}
         </select>
+
         <input
           value={newCat}
           onChange={(e) => setNewCat(e.target.value)}
@@ -120,8 +139,9 @@ const ExpenseForm = ({expenseList,setExpenseList}) => {
         <button type="button" onClick={handleAddCategory}>
           Add Category
         </button>
-        <button disabled={formData.category==="None"}>Add Expense</button>
+        <button disabled={formData.category === "None"}>Add Expense</button>
       </form>
+
       <ExpenseList lists={expenseList} />
     </>
   );

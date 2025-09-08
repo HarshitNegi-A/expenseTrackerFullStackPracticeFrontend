@@ -1,25 +1,26 @@
-import React, { useState, useContext } from "react";
+import React, { useState } from "react";
 import axios from "axios";
-import UserContext from "../context/user-context"; // context for token
+import BASE_URL from "../utils/api"; // ✅ use central base url
 
 export const DownloadExpense = () => {
   const [fileUrl, setFileUrl] = useState(null);
   const [loading, setLoading] = useState(false);
-const token = localStorage.getItem("token");
+  const token = localStorage.getItem("token");
+
   const handleDownload = async () => {
     try {
       setLoading(true);
       setFileUrl(null);
 
-      const response = await axios.get("http://localhost:3000/expense/download", {
+      const response = await axios.get(`${BASE_URL}/expense/download`, {
         headers: {
-          Authorization: `Bearer ${token}`, // send JWT token
+          Authorization: `Bearer ${token}`, // ✅ send JWT token
         },
       });
 
-      setFileUrl(response.data.fileUrl); // S3 file URL
+      setFileUrl(response.data.fileUrl); // ✅ S3 file URL
     } catch (err) {
-      console.error(err);
+      console.error("Download error:", err.response?.data || err.message);
       alert("Error downloading expenses");
     } finally {
       setLoading(false);

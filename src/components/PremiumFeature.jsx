@@ -1,22 +1,19 @@
 import { useContext, useEffect, useState } from "react";
 import { load } from "@cashfreepayments/cashfree-js";
 import axios from "axios";
+import BASE_URL from "../utils/api"; // ✅ import your base URL
 import UserContext from "./context/user-context";
-// import { useNavigate } from "react-router-dom";
 
 const PremiumFeature = () => {
   const [cashfree, setCashfree] = useState(null);
   const [loading, setLoading] = useState(true);
-  const {user,updateUser}=useContext(UserContext)
-  //      const [user, setUser] = useState(
-  //   JSON.parse(localStorage.getItem("user")) || null
-  // );
-  // const navigate = useNavigate();
+  const { user, updateUser } = useContext(UserContext);
+
   // ✅ Load Cashfree SDK once
   useEffect(() => {
     const init = async () => {
       try {
-        const cf = await load({ mode: "sandbox" }); // or "production"
+        const cf = await load({ mode: "sandbox" }); // use "production" in live
         setCashfree(cf);
         console.log("✅ Cashfree SDK loaded");
       } catch (err) {
@@ -48,25 +45,24 @@ const PremiumFeature = () => {
         const config = { headers: { Authorization: `Bearer ${token}` } };
 
         const res = await axios.get(
-          `http://localhost:3000/premium/verify?order_id=${orderId}`,
+          `${BASE_URL}/premium/verify?order_id=${orderId}`,
           config
         );
 
         if (res.data.status === "PAID") {
           alert("✅ Payment successful! Premium activated.");
           updateUser(res.data.user);
-          // localStorage.setItem("user", JSON.stringify(res.data.user));
         } else {
           alert(`⚠️ Payment status: ${res.data.status}`);
         }
       } catch (err) {
-        console.error("❌ Payment verification failed:", err);
+        console.error("❌ Payment verification failed:", err.response?.data || err.message);
         alert("Failed to verify payment.");
       }
     };
 
     verifyPayment();
-  }, []);
+  }, [updateUser]);
 
   const handlePremium = async () => {
     try {
@@ -76,14 +72,12 @@ const PremiumFeature = () => {
       }
 
       const token = localStorage.getItem("token");
-      const config = {
-        headers: { Authorization: `Bearer ${token}` },
-      };
+      const config = { headers: { Authorization: `Bearer ${token}` } };
 
       // ✅ Request backend to create order
       const res = await axios.post(
-        "http://localhost:3000/premium",
-        { amount: 1 }, // Pass amount or other metadata
+        `${BASE_URL}/premium`,
+        { amount: 1 }, // Pass amount or metadata
         config
       );
 
@@ -112,9 +106,7 @@ const PremiumFeature = () => {
   return (
     <>
       {user?.isPremium ? (
-        <p className="text-green-600 font-semibold">
-          🌟 You are a Premium Member
-        </p>
+        <p className="text-green-600 font-semibold">🌟 You are a Premium Member</p>
       ) : (
         <button
           onClick={handlePremium}
