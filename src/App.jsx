@@ -20,6 +20,7 @@ function App() {
 
      useEffect(()=>{
       const token=localStorage.getItem("token")
+      if (!token) return;
       setIsLoggedIn(!!token)
       const fetchExpense=async()=>{
       try{

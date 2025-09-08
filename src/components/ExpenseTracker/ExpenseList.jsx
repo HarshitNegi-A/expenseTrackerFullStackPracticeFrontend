@@ -1,6 +1,9 @@
-import React from 'react'
+import React, { useContext } from 'react'
+import { DownloadExpense } from './DownloadExpense'
+import UserContext from '../context/user-context'
 
 const ExpenseList = ({lists}) => {
+     const {user}=useContext(UserContext)
   return (
     <>
     <table>
@@ -21,6 +24,7 @@ const ExpenseList = ({lists}) => {
             ))}
         </tbody>
     </table>
+    {user?.isPremium &&  <DownloadExpense lists={lists}/>}
     </>
   )
 }
