@@ -1,3 +1,2 @@
-// src/utils/api.js
-const BASE_URL = "https://13.127.225.137:3000"; // your EC2 backend URL
+const BASE_URL = "https://myexpensetracker.info";
 export default BASE_URL;
