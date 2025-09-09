@@ -45,8 +45,13 @@ const PremiumFeature = () => {
 
     const verifyPayment = async () => {
       const urlParams = new URLSearchParams(window.location.search);
-      const orderId = urlParams.get("order_id");
-      if (!orderId) return;
+
+      // Prefer order_token (recommended). Fallback to order_id if token absent.
+      const orderToken = urlParams.get("order_token") || urlParams.get("orderToken");
+      const orderId = urlParams.get("order_id") || urlParams.get("orderId");
+
+      // nothing to verify
+      if (!orderToken && !orderId) return;
 
       try {
         const token = localStorage.getItem("token");
@@ -56,28 +61,33 @@ const PremiumFeature = () => {
         }
         const config = { headers: { Authorization: `Bearer ${token}` } };
 
-        console.log("Verifying payment for order:", orderId);
-        const res = await axios.get(`${BASE_URL}/premium/verify?order_id=${orderId}`, config);
+        // build params: prefer token
+        let params = {};
+        if (orderToken) params.order_token = orderToken;
+        else params.order_id = orderId;
+
+        console.log("Verifying payment with params:", params);
+        const res = await axios.get(`${BASE_URL}/premium/verify`, { params, headers: config.headers });
         const status = res?.data?.status;
 
-        if (status === "PAID") {
+        if (status === "PAID" || status === "SUCCESS") {
           // mark local flag so we won't verify again
           setHasVerified(true);
 
-          // update user in app state/context
+          // update user in app state/context if backend returned user
           if (res.data.user) safeUpdateUser(res.data.user);
 
-          // remove order_id from URL so page reloads / re-renders won't re-trigger verification
+          // remove order params from URL so page reloads / re-renders won't re-trigger verification
           const url = new URL(window.location.href);
+          url.searchParams.delete("order_token");
+          url.searchParams.delete("orderToken");
           url.searchParams.delete("order_id");
+          url.searchParams.delete("orderId");
           window.history.replaceState({}, document.title, url.toString());
 
           // show a single success UI / toast / redirect
           alert("✅ Payment successful! Premium activated.");
-          // Optionally: navigate to a success page instead of alert
-          // navigate("/premium/success");
-        } else if (status === "PENDING") {
-          // keep hasVerified false so you could poll later if you want
+        } else if (status === "PENDING" || status === "INITIATED") {
           alert("⏳ Payment is pending. We'll confirm once it's done.");
         } else {
           alert(`⚠️ Payment status: ${status || "Unknown"}. ${res?.data?.message || ""}`);
@@ -109,17 +119,25 @@ const PremiumFeature = () => {
       // ✅ Request backend to create order
       const res = await axios.post(`${BASE_URL}/premium`, { amount: 1 }, config);
 
+      // backend returns payment_session_id and orderId (we added orderId for convenience)
       const sessionId = res.data?.payment_session_id;
+      const returnedOrderId = res.data?.orderId;
       if (!sessionId) {
+        console.error("premium response:", res.data);
         alert("❌ Payment session ID not received from server.");
         return;
+      }
+
+      // Optional: you can store returnedOrderId locally if you want to reference it later
+      if (returnedOrderId) {
+        console.log("Created order:", returnedOrderId);
       }
 
       // ✅ Open Cashfree Checkout
       cashfree.checkout(
         {
           paymentSessionId: sessionId,
-          redirectTarget: "_self", // Redirect to Cashfree page
+          redirectTarget: "_self", // Redirect to Cashfree page, which will redirect back with order_token & order_id
         },
         (event) => {
           console.log("💳 Payment event:", event);
