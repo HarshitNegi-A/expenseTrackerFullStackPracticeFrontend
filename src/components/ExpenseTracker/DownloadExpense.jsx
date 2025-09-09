@@ -6,51 +6,44 @@ export const DownloadExpense = () => {
   const [loading, setLoading] = useState(false);
   const token = localStorage.getItem("token");
 
- const handleDownload = async () => {
-  try {
-    setLoading(true);
-    const res = await axios.get(`${BASE_URL}/expense/download`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const fileUrl = res.data.fileUrl;
-    if (!fileUrl) throw new Error("No fileUrl");
-
-    // Try blob fetch (requires S3 CORS)
+  const handleDownload = async () => {
     try {
-      const fileRes = await axios.get(fileUrl, { responseType: "blob" });
-      const contentDisposition = fileRes.headers["content-disposition"];
-      let filename = "expenses-report.txt";
-      if (contentDisposition) {
-        const match = contentDisposition.match(/filename\*?=UTF-8''(.+)|filename="?([^"]+)"?/);
-        if (match) filename = decodeURIComponent(match[1] || match[2]);
-      } else {
-        const parts = fileUrl.split("/");
-        filename = parts[parts.length - 1].split("?")[0] || filename;
+      setLoading(true);
+
+      // Step 1: Get presigned S3 URL from backend
+      const response = await axios.get(`${BASE_URL}/expense/download`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const fileUrl = response.data.fileUrl;
+      if (!fileUrl) {
+        alert("No file URL received from server.");
+        return;
       }
 
-      const blob = new Blob([fileRes.data], { type: fileRes.data.type || "text/plain" });
+      // Step 2: Fetch file as Blob
+      const fileRes = await axios.get(fileUrl, { responseType: "blob" });
+
+      // Step 3: Create blob URL and trigger download
+      const blob = new Blob([fileRes.data], { type: "text/plain" });
       const blobUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = "expenses-report.txt"; // ✅ final filename
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Cleanup
       window.URL.revokeObjectURL(blobUrl);
-      return;
-    } catch (xhrErr) {
-      console.warn("Blob fetch failed (likely CORS). Falling back to navigation:", xhrErr);
-      // Fallback: open presigned URL directly — no CORS required for navigation
-      const newWindow = window.open(fileUrl, "_blank", "noopener,noreferrer");
-      if (!newWindow) window.location.assign(fileUrl);
+    } catch (err) {
+      console.error("Download error:", err.response?.data || err.message);
+      alert("Error downloading expenses");
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("Download error:", err);
-    alert("Error downloading expenses");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="p-6 max-w-md mx-auto bg-white shadow-lg rounded-2xl border border-gray-200">
