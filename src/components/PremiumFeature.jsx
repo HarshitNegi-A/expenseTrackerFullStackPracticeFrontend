@@ -27,42 +27,38 @@ const PremiumFeature = () => {
   }, []);
 
   // ✅ Handle payment success redirect
-  useEffect(() => {
-    const verifyPayment = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const orderId = urlParams.get("order_id");
-      const status = urlParams.get("status");
+ // inside your component useEffect for verify
+useEffect(() => {
+  const verifyPayment = async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const orderId = urlParams.get("order_id");
+    if (!orderId) return;
 
-      if (!orderId) return;
+    try {
+      const token = localStorage.getItem("token");
+      const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      if (status === "FAILED") {
-        alert("❌ Payment failed. Please try again.");
-        return;
+      // Always ask backend to verify the order with Cashfree
+      const res = await axios.get(`${BASE_URL}/premium/verify?order_id=${orderId}`, config);
+
+      // Backend should return a verified status like { status: 'PAID', user: {...} }
+      if (res.data && res.data.status === "PAID") {
+        // only now trust it
+        alert("✅ Payment successful! Premium activated.");
+        updateUser(res.data.user);
+      } else {
+        // status could be PENDING, FAILED, or anything else
+        alert(`⚠️ Payment status: ${res.data.status || "Unknown"}`);
       }
+    } catch (err) {
+      console.error("❌ Payment verification failed:", err.response?.data || err.message);
+      alert("Failed to verify payment. Please contact support.");
+    }
+  };
 
-      try {
-        const token = localStorage.getItem("token");
-        const config = { headers: { Authorization: `Bearer ${token}` } };
+  verifyPayment();
+}, [updateUser]);
 
-        const res = await axios.get(
-          `${BASE_URL}/premium/verify?order_id=${orderId}`,
-          config
-        );
-
-        if (res.data.status === "PAID") {
-          alert("✅ Payment successful! Premium activated.");
-          updateUser(res.data.user);
-        } else {
-          alert(`⚠️ Payment status: ${res.data.status}`);
-        }
-      } catch (err) {
-        console.error("❌ Payment verification failed:", err.response?.data || err.message);
-        alert("Failed to verify payment.");
-      }
-    };
-
-    verifyPayment();
-  }, [updateUser]);
 
   const handlePremium = async () => {
     try {
