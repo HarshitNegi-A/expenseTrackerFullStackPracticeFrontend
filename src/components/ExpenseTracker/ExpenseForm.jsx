@@ -199,7 +199,7 @@ const ExpenseForm = ({ expenseList, setExpenseList }) => {
       <div className="mt-6">
         <h4 className="text-md font-semibold text-gray-700 mb-3">Your Expenses</h4>
         <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
-          <ExpenseList lists={expenseList} />
+          <ExpenseList lists={expenseList} setExpenseList={setExpenseList} />
         </div>
       </div>
     </div>
