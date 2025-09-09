@@ -19,7 +19,10 @@ const ResetPassword = () => {
           setIsValid(true);
         }
       } catch (err) {
-        console.error("❌ Reset link check failed:", err.response?.data || err.message);
+        console.error(
+          "❌ Reset link check failed:",
+          err.response?.data || err.message
+        );
         setIsValid(false);
       } finally {
         setLoading(false);
@@ -39,40 +42,61 @@ const ResetPassword = () => {
       alert("✅ Password updated successfully!");
       navigate("/login"); // redirect to login
     } catch (error) {
-      console.error("❌ Reset error:", error.response?.data || error.message);
+      console.error(
+        "❌ Reset error:",
+        error.response?.data || error.message
+      );
       alert("Failed to reset password. Try again.");
     }
   };
 
-  if (loading) return <p>Loading...</p>;
-  if (!isValid) return <p>⚠️ Reset link is invalid or expired.</p>;
+  if (loading)
+    return (
+      <p className="text-center mt-10 text-gray-600 font-medium">Loading...</p>
+    );
+
+  if (!isValid)
+    return (
+      <p className="text-center mt-10 text-red-600 font-semibold">
+        ⚠️ Reset link is invalid or expired.
+      </p>
+    );
 
   // ✅ Step 3: Show password form
   return (
-    <div style={{ padding: "1rem" }}>
-      <h2>Reset Your Password</h2>
-      <form onSubmit={handleSubmit}>
-        <label htmlFor="password">New Password:</label>
-        <br />
-        <input
-          id="password"
-          type="password"
-          value={newPassword}
-          required
-          onChange={(e) => setNewPassword(e.target.value)}
-          style={{
-            padding: "0.5rem",
-            marginTop: "0.5rem",
-            marginBottom: "1rem",
-            width: "100%",
-            maxWidth: "300px",
-          }}
-        />
-        <br />
-        <button type="submit" style={{ padding: "0.6rem 1rem", marginTop: "0.5rem" }}>
-          Update Password
-        </button>
-      </form>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="w-full max-w-md bg-white shadow-lg rounded-2xl p-6 border border-gray-200">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">
+          Reset Your Password
+        </h2>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              New Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={newPassword}
+              required
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              placeholder="Enter new password"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full py-2 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 active:scale-[0.98] transition"
+          >
+            Update Password
+          </button>
+        </form>
+      </div>
     </div>
   );
 };
