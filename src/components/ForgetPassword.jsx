@@ -8,7 +8,7 @@ const ForgotPassword = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post(`${BASE_URL}/password/forgotpassword`, { email });
+      const res = await axios.post(`${BASE_URL}/forgotpassword`, { email });
       // You can log or handle backend response if needed
       console.log(res.data);
       setMessage("If the email exists, a reset link has been sent.");
