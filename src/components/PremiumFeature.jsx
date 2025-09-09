@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useCallback } from "react";
 import { load } from "@cashfreepayments/cashfree-js";
 import axios from "axios";
 import BASE_URL from "../utils/api"; // ✅ import your base URL
@@ -7,7 +7,20 @@ import UserContext from "./context/user-context";
 const PremiumFeature = () => {
   const [cashfree, setCashfree] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [hasVerified, setHasVerified] = useState(false); // prevents repeated verification/alerts
   const { user, updateUser } = useContext(UserContext);
+
+  // Stable wrapper around updateUser in case parent provides a new function each render
+  const safeUpdateUser = useCallback(
+    (userObj) => {
+      try {
+        updateUser(userObj);
+      } catch (e) {
+        console.warn("safeUpdateUser: updateUser failed", e);
+      }
+    },
+    [updateUser]
+  );
 
   // ✅ Load Cashfree SDK once
   useEffect(() => {
@@ -26,39 +39,58 @@ const PremiumFeature = () => {
     init();
   }, []);
 
-  // ✅ Handle payment success redirect
- // inside your component useEffect for verify
-useEffect(() => {
-  const verifyPayment = async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const orderId = urlParams.get("order_id");
-    if (!orderId) return;
+  // ✅ Handle payment success redirect (verify only once)
+  useEffect(() => {
+    if (hasVerified) return; // already handled a successful verification
 
-    try {
-      const token = localStorage.getItem("token");
-      const config = { headers: { Authorization: `Bearer ${token}` } };
+    const verifyPayment = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const orderId = urlParams.get("order_id");
+      if (!orderId) return;
 
-      // Always ask backend to verify the order with Cashfree
-      const res = await axios.get(`${BASE_URL}/premium/verify?order_id=${orderId}`, config);
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          alert("You are not authenticated. Please login and try again.");
+          return;
+        }
+        const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      // Backend should return a verified status like { status: 'PAID', user: {...} }
-      if (res.data && res.data.status === "PAID") {
-        // only now trust it
-        alert("✅ Payment successful! Premium activated.");
-        updateUser(res.data.user);
-      } else {
-        // status could be PENDING, FAILED, or anything else
-        alert(`⚠️ Payment status: ${res.data.status || "Unknown"}`);
+        console.log("Verifying payment for order:", orderId);
+        const res = await axios.get(`${BASE_URL}/premium/verify?order_id=${orderId}`, config);
+        const status = res?.data?.status;
+
+        if (status === "PAID") {
+          // mark local flag so we won't verify again
+          setHasVerified(true);
+
+          // update user in app state/context
+          if (res.data.user) safeUpdateUser(res.data.user);
+
+          // remove order_id from URL so page reloads / re-renders won't re-trigger verification
+          const url = new URL(window.location.href);
+          url.searchParams.delete("order_id");
+          window.history.replaceState({}, document.title, url.toString());
+
+          // show a single success UI / toast / redirect
+          alert("✅ Payment successful! Premium activated.");
+          // Optionally: navigate to a success page instead of alert
+          // navigate("/premium/success");
+        } else if (status === "PENDING") {
+          // keep hasVerified false so you could poll later if you want
+          alert("⏳ Payment is pending. We'll confirm once it's done.");
+        } else {
+          alert(`⚠️ Payment status: ${status || "Unknown"}. ${res?.data?.message || ""}`);
+        }
+      } catch (err) {
+        console.error("❌ Payment verification failed:", err.response?.data || err.message);
+        const serverMsg = err?.response?.data?.message || err?.message || "Failed to verify payment.";
+        alert(`Failed to verify payment: ${serverMsg}`);
       }
-    } catch (err) {
-      console.error("❌ Payment verification failed:", err.response?.data || err.message);
-      alert("Failed to verify payment. Please contact support.");
-    }
-  };
+    };
 
-  verifyPayment();
-}, [updateUser]);
-
+    verifyPayment();
+  }, [safeUpdateUser, hasVerified]);
 
   const handlePremium = async () => {
     try {
@@ -68,14 +100,14 @@ useEffect(() => {
       }
 
       const token = localStorage.getItem("token");
+      if (!token) {
+        alert("You must be logged in to buy premium.");
+        return;
+      }
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
       // ✅ Request backend to create order
-      const res = await axios.post(
-        `${BASE_URL}/premium`,
-        { amount: 1 }, // Pass amount or metadata
-        config
-      );
+      const res = await axios.post(`${BASE_URL}/premium`, { amount: 1 }, config);
 
       const sessionId = res.data?.payment_session_id;
       if (!sessionId) {
