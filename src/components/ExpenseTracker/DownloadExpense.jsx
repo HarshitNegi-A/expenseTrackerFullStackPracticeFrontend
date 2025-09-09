@@ -10,26 +10,33 @@ export const DownloadExpense = () => {
     try {
       setLoading(true);
 
+      // Step 1: Get presigned S3 URL from backend
       const response = await axios.get(`${BASE_URL}/expense/download`, {
-        headers: {
-          Authorization: `Bearer ${token}`, // ✅ send JWT token
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const fileUrl = response.data.fileUrl;
-
       if (!fileUrl) {
         alert("No file URL received from server.");
         return;
       }
 
-      // ✅ Auto-trigger download
+      // Step 2: Fetch file as Blob
+      const fileRes = await axios.get(fileUrl, { responseType: "blob" });
+
+      // Step 3: Create blob URL and trigger download
+      const blob = new Blob([fileRes.data], { type: "text/plain" });
+      const blobUrl = window.URL.createObjectURL(blob);
+
       const link = document.createElement("a");
-      link.href = fileUrl;
-      link.setAttribute("download", "expenses-report.txt"); // suggested filename
+      link.href = blobUrl;
+      link.download = "expenses-report.txt"; // ✅ final filename
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+
+      // Cleanup
+      window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
       console.error("Download error:", err.response?.data || err.message);
       alert("Error downloading expenses");
