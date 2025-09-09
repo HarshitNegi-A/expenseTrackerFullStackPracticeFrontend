@@ -3,14 +3,12 @@ import axios from "axios";
 import BASE_URL from "../../utils/api"; // ✅ use central base url
 
 export const DownloadExpense = () => {
-  const [fileUrl, setFileUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const token = localStorage.getItem("token");
 
   const handleDownload = async () => {
     try {
       setLoading(true);
-      setFileUrl(null);
 
       const response = await axios.get(`${BASE_URL}/expense/download`, {
         headers: {
@@ -18,7 +16,20 @@ export const DownloadExpense = () => {
         },
       });
 
-      setFileUrl(response.data.fileUrl); // ✅ S3 file URL
+      const fileUrl = response.data.fileUrl;
+
+      if (!fileUrl) {
+        alert("No file URL received from server.");
+        return;
+      }
+
+      // ✅ Auto-trigger download
+      const link = document.createElement("a");
+      link.href = fileUrl;
+      link.setAttribute("download", "expenses-report.txt"); // suggested filename
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (err) {
       console.error("Download error:", err.response?.data || err.message);
       alert("Error downloading expenses");
@@ -70,22 +81,6 @@ export const DownloadExpense = () => {
           "Download Expense"
         )}
       </button>
-
-      {fileUrl && (
-        <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg text-center">
-          <p className="text-green-700 font-medium mb-2">
-            ✅ Your file is ready:
-          </p>
-          <a
-            href={fileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 font-semibold hover:underline break-all"
-          >
-            {fileUrl}
-          </a>
-        </div>
-      )}
     </div>
   );
 };
