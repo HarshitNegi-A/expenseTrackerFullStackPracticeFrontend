@@ -54,11 +54,13 @@ const ReportGeneration = ({ expenseList }) => {
   };
 
   return (
-    <div>
-      <h1 className="text-xl font-bold mb-4">Expense Report</h1>
+    <div className="bg-white shadow-lg rounded-2xl p-6 border border-gray-200">
+      <h1 className="text-2xl font-extrabold mb-6 text-gray-800 border-b pb-2">
+        📊 Expense Report
+      </h1>
 
       {/* Filter Buttons */}
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-3 mb-6">
         {["all", "daily", "weekly", "monthly"].map((type) => (
           <button
             key={type}
@@ -66,8 +68,10 @@ const ReportGeneration = ({ expenseList }) => {
               setFilter(type);
               setCurrentPage(1);
             }}
-            className={`px-3 py-1 rounded ${
-              filter === type ? "bg-blue-500 text-white" : "bg-gray-300"
+            className={`px-4 py-2 rounded-lg transition-all duration-200 font-medium ${
+              filter === type
+                ? "bg-blue-600 text-white shadow-md"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
             }`}
           >
             {type.charAt(0).toUpperCase() + type.slice(1)}
@@ -76,12 +80,12 @@ const ReportGeneration = ({ expenseList }) => {
       </div>
 
       {/* Items Per Page Selector */}
-      <div className="mb-4">
-        <label className="mr-2 font-medium">Items per page:</label>
+      <div className="mb-6 flex items-center">
+        <label className="mr-3 font-semibold text-gray-700">Items per page:</label>
         <select
           value={itemsPerPage}
           onChange={handleItemsPerPageChange}
-          className="border p-1 rounded"
+          className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           {[5, 10, 15, 20].map((num) => (
             <option key={num} value={num}>
@@ -92,24 +96,36 @@ const ReportGeneration = ({ expenseList }) => {
       </div>
 
       {/* Expense List */}
-      <ul>
+      <ul className="space-y-4">
         {currentItems.map((expense) => (
-          <li key={expense.id} className="border p-2 mb-2 rounded">
-            <p><strong>Amount:</strong> ₹{expense.amount}</p>
-            <p><strong>Category:</strong> {expense.category}</p>
-            <p><strong>Description:</strong> {expense.description}</p>
-            <p><strong>Date:</strong> {new Date(expense.createdAt).toLocaleDateString()}</p>
+          <li
+            key={expense.id}
+            className="border rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow duration-200 bg-gray-50"
+          >
+            <p className="text-lg font-semibold text-blue-700">
+              💰 Amount: ₹{expense.amount}
+            </p>
+            <p className="text-gray-700">
+              <strong>Category:</strong> {expense.category}
+            </p>
+            <p className="text-gray-600">
+              <strong>Description:</strong> {expense.description}
+            </p>
+            <p className="text-sm text-gray-500">
+              <strong>Date:</strong>{" "}
+              {new Date(expense.createdAt).toLocaleDateString()}
+            </p>
           </li>
         ))}
       </ul>
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-4">
+        <div className="flex justify-center gap-2 mt-6">
           <button
             onClick={() => goToPage(currentPage - 1)}
             disabled={currentPage === 1}
-            className="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
+            className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50 hover:bg-gray-300 transition"
           >
             Prev
           </button>
@@ -118,10 +134,10 @@ const ReportGeneration = ({ expenseList }) => {
             <button
               key={index + 1}
               onClick={() => goToPage(index + 1)}
-              className={`px-3 py-1 rounded ${
+              className={`px-4 py-2 rounded-lg font-medium transition ${
                 currentPage === index + 1
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-300"
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "bg-gray-200 hover:bg-gray-300"
               }`}
             >
               {index + 1}
@@ -131,7 +147,7 @@ const ReportGeneration = ({ expenseList }) => {
           <button
             onClick={() => goToPage(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
+            className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50 hover:bg-gray-300 transition"
           >
             Next
           </button>
