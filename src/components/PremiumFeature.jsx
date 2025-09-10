@@ -10,7 +10,7 @@ const PremiumFeature = () => {
   const [hasVerified, setHasVerified] = useState(false); // prevents repeated verification/alerts
   const { user, updateUser } = useContext(UserContext);
 
-  // Stable wrapper around updateUser in case parent provides a new function each render
+  // Stable wrapper around updateUser
   const safeUpdateUser = useCallback(
     (userObj) => {
       try {
@@ -41,17 +41,13 @@ const PremiumFeature = () => {
 
   // ✅ Handle payment success redirect (verify only once)
   useEffect(() => {
-    if (hasVerified) return; // already handled a successful verification
+    if (hasVerified) return;
 
     const verifyPayment = async () => {
       const urlParams = new URLSearchParams(window.location.search);
-
-      // Prefer order_token (recommended). Fallback to order_id if token absent.
-      const orderToken = urlParams.get("order_token") || urlParams.get("orderToken");
       const orderId = urlParams.get("order_id") || urlParams.get("orderId");
 
-      // nothing to verify
-      if (!orderToken && !orderId) return;
+      if (!orderId) return; // nothing to verify
 
       try {
         const token = localStorage.getItem("token");
@@ -59,33 +55,28 @@ const PremiumFeature = () => {
           alert("You are not authenticated. Please login and try again.");
           return;
         }
+
         const config = { headers: { Authorization: `Bearer ${token}` } };
 
-        // build params: prefer token
-        let params = {};
-        if (orderToken) params.order_token = orderToken;
-        else params.order_id = orderId;
+        console.log("Verifying payment with order_id:", orderId);
+        const res = await axios.get(`${BASE_URL}/premium/verify`, {
+          params: { order_id: orderId },
+          headers: config.headers,
+        });
 
-        console.log("Verifying payment with params:", params);
-        const res = await axios.get(`${BASE_URL}/premium/verify`, { params, headers: config.headers });
         const status = res?.data?.status;
 
         if (status === "PAID" || status === "SUCCESS") {
-          // mark local flag so we won't verify again
           setHasVerified(true);
 
-          // update user in app state/context if backend returned user
           if (res.data.user) safeUpdateUser(res.data.user);
 
-          // remove order params from URL so page reloads / re-renders won't re-trigger verification
+          // remove order params from URL
           const url = new URL(window.location.href);
-          url.searchParams.delete("order_token");
-          url.searchParams.delete("orderToken");
           url.searchParams.delete("order_id");
           url.searchParams.delete("orderId");
           window.history.replaceState({}, document.title, url.toString());
 
-          // show a single success UI / toast / redirect
           alert("✅ Payment successful! Premium activated.");
         } else if (status === "PENDING" || status === "INITIATED") {
           alert("⏳ Payment is pending. We'll confirm once it's done.");
@@ -117,9 +108,8 @@ const PremiumFeature = () => {
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
       // ✅ Request backend to create order
-      const res = await axios.post(`${BASE_URL}/premium`, { amount: 1 }, config);
+      const res = await axios.post(`${BASE_URL}/premium`, { amount: 499 }, config);
 
-      // backend returns payment_session_id and orderId (we added orderId for convenience)
       const sessionId = res.data?.payment_session_id;
       const returnedOrderId = res.data?.orderId;
       if (!sessionId) {
@@ -128,7 +118,6 @@ const PremiumFeature = () => {
         return;
       }
 
-      // Optional: you can store returnedOrderId locally if you want to reference it later
       if (returnedOrderId) {
         console.log("Created order:", returnedOrderId);
       }
@@ -137,7 +126,7 @@ const PremiumFeature = () => {
       cashfree.checkout(
         {
           paymentSessionId: sessionId,
-          redirectTarget: "_self", // Redirect to Cashfree page, which will redirect back with order_token & order_id
+          redirectTarget: "_self", // Cashfree will redirect back with order_id
         },
         (event) => {
           console.log("💳 Payment event:", event);
